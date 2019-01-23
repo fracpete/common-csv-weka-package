@@ -16,37 +16,15 @@ Supported formats:
 * **RFC-4180** - The RFC-4180 format defined by RFC-4180.
 * **TDF** - A tab delimited format.
 
-Releases
---------
+## Releases
 
-* [2019.1.23](https://github.com/fracpete/common-csv-weka-package/releases/download/v2019.1.23/common-csv-2019.1.23.zip)
+* ...
 
 
-How to use packages
--------------------
+## How to use packages
 
 For more information on how to install the package, see:
 
 https://waikato.github.io/weka-wiki/packages/manager/
 
-
-Maven
------
-
-Add the following dependency in your `pom.xml` to include the package:
-
-```xml
-    <dependency>
-      <groupId>com.github.fracpete</groupId>
-      <artifactId>common-csv-weka-package</artifactId>
-      <version>2019.1.23</version>
-      <type>jar</type>
-      <exclusions>
-        <exclusion>
-          <groupId>nz.ac.waikato.cms.weka</groupId>
-          <artifactId>weka-dev</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-```
 
