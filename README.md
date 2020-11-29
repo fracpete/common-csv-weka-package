@@ -18,7 +18,27 @@ Supported formats:
 
 ## Releases
 
-* ...
+* [2020.11.29](https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.11.29/common-csv-2020.11.29.zip)
+
+
+## Maven
+
+Use the following dependency in your `pom.xml`:
+
+```xml
+    <dependency>
+      <groupId>com.github.fracpete</groupId>
+      <artifactId>common-csv-weka-package</artifactId>
+      <version>2020.11.29</version>
+      <type>jar</type>
+      <exclusions>
+        <exclusion>
+          <groupId>nz.ac.waikato.cms.weka</groupId>
+          <artifactId>weka-dev</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+```
 
 
 ## How to use packages

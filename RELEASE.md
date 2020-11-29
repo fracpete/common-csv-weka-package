@@ -7,16 +7,16 @@ Preparation
 * Change the artifact ID in `pom.xml` to today's date, e.g.:
 
   ```
-  2019.1.23-SNAPSHOT
+  2020.11.29-SNAPSHOT
   ```
 
 * Update the version, date and URL in `Description.props` to reflect new
   version, e.g.:
 
   ```
-  Version=2019.1.23
-  Date=2019-01-23
-  PackageURL=https://github.com/fracpete/common-csv-weka-package/releases/download/v2019.1.23/common-csv-2019.1.23.zip
+  Version=2020.11.29
+  Date=2020-11-29
+  PackageURL=https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.11.29/common-csv-2020.11.29.zip
   ```
 
 * Commit/push all changes
@@ -25,13 +25,13 @@ Preparation
 Weka package
 ------------
 
-* Run the following command to generate the package archive for version `2019.1.23`:
+* Run the following command to generate the package archive for version `2020.11.29`:
 
   ```
-  ant -f build_package.xml -Dpackage=common-csv-2019.1.23 clean make_package
+  ant -f build_package.xml -Dpackage=common-csv-2020.11.29 clean make_package
   ```
 
-* Create a release tag on github (v2019.1.23)
+* Create a release tag on github (v2020.11.29)
 * add release notes
 * upload package archive from `dist`
 

@@ -391,8 +391,8 @@ public class CommonCSVLoader
 	        values[i] = Double.parseDouble(cell);
 	      else
 	        values[i] = m_Data.attribute(i).addStringValue(cell);
-	      m_Data.add(new DenseInstance(1.0, values));
 	    }
+	    m_Data.add(new DenseInstance(1.0, values));
 	  }
 	  m_structure = new Instances(m_Data, 0);
 	}

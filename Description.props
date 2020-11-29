@@ -5,10 +5,10 @@
 PackageName=common-csv
 
 # Version (required)
-Version=2019.1.23
+Version=2020.11.29
 
 #Date (year-month-day)
-Date=2019-01-23
+Date=2020-11-29
 
 # Title (required)
 Title=Common CSV Formats
@@ -29,7 +29,7 @@ License=GPL 3.0
 Description=Contains various visualizations for confusion matrices.
 
 # Package URL for obtaining the package archive (required)
-PackageURL=https://github.com/fracpete/common-csv-weka-package/releases/download/v2019.1.23/common-csv-2019.1.23.zip
+PackageURL=https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.11.29/common-csv-2020.11.29.zip
 
 # URL for further information
 URL=https://github.com/fracpete/common-csv-weka-package
@@ -41,7 +41,7 @@ Enhances=
 Related=
 
 # Dependencies (format: packageName (equality/inequality version_number)
-Depends=weka (>=3.7.11)
+Depends=weka (>3.9.4)
 
 # Message to display in installation. Can be used to provide
 # special instructions (e.g. manual stuff needed to complete
