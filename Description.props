@@ -26,7 +26,7 @@ Maintainer=Peter Reutemann <fracpete@waikato.ac.nz>
 License=GPL 3.0
 
 # Description (required)
-Description=Contains various visualizations for confusion matrices.
+Description=CSV loader/saver using Apache Commons CSV library.
 
 # Package URL for obtaining the package archive (required)
 PackageURL=https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.11.29/common-csv-2020.11.29.zip
