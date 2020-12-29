@@ -5,10 +5,10 @@
 PackageName=common-csv
 
 # Version (required)
-Version=2020.11.29
+Version=2020.12.29
 
 #Date (year-month-day)
-Date=2020-11-29
+Date=2020-12-29
 
 # Title (required)
 Title=Common CSV Formats
@@ -29,7 +29,7 @@ License=GPL 3.0
 Description=CSV loader/saver using Apache Commons CSV library.
 
 # Package URL for obtaining the package archive (required)
-PackageURL=https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.11.29/common-csv-2020.11.29.zip
+PackageURL=https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.12.29/common-csv-2020.12.29.zip
 
 # URL for further information
 URL=https://github.com/fracpete/common-csv-weka-package
