@@ -15,7 +15,7 @@
 
 /*
  * CommonCsvFormats.java
- * Copyright (C) 2019 University of Waikato, Hamilton, NZ
+ * Copyright (C) 2019-2020 FracPete
  */
 
 package weka.core.converters;
@@ -26,7 +26,7 @@ import weka.core.Tag;
 /**
  * The available formats.
  *
- * @author FracPete (fracpete at waikato dot ac dot nz)
+ * @author FracPete (fracpete at gmail dot com)
  */
 public class CommonCsvFormats {
   

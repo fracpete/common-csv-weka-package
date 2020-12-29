@@ -15,7 +15,7 @@
 
 /*
  * CommonCSVSaver.java
- * Copyright (C) 2019 University of Waikato, Hamilton, New Zealand
+ * Copyright (C) 2019-2020 FracPete
  *
  */
 
@@ -47,13 +47,9 @@ import java.util.Map;
 import java.util.Vector;
 
 /**
- <!-- globalinfo-start -->
- <!-- globalinfo-end -->
- * 
- <!-- options-start -->
- <!-- options-end -->
- * 
- * @author FracPete (fracpete at waikato dot ac dot nz)
+ * Writes to a destination that is in the specified CSV format.
+ *
+ * @author FracPete (fracpete at gmail dot com)
  * @see Saver
  */
 public class CommonCSVSaver
@@ -80,7 +76,7 @@ public class CommonCSVSaver
    *         explorer/experimenter gui
    */
   public String globalInfo() {
-    return "Writes to a destination that is in CSV format.";
+    return "Writes to a destination that is in the specified CSV format.";
   }
 
   /**

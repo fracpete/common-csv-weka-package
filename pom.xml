@@ -5,16 +5,12 @@
 
   <groupId>com.github.fracpete</groupId>
   <artifactId>common-csv-weka-package</artifactId>
-  <version>2020.11.30-SNAPSHOT</version>
+  <version>2020.12.29-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>common-csv</name>
   <description>CSV loader/saver that handles common CSV formats.</description>
   <url>https://github.com/fracpete/common-csv-weka-package</url>
-  <organization>
-    <name>University of Waikato, Hamilton, NZ</name>
-    <url>http://www.waikato.ac.nz/</url>
-  </organization>
   <licenses>
     <license>
       <name>GNU General Public License 3</name>
