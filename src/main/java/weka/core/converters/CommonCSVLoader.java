@@ -47,6 +47,7 @@ import java.io.Reader;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -59,8 +60,6 @@ import java.util.zip.GZIPInputStream;
 
 /**
  * TODO:
- * - no header
- * - customer header
  * - nominal att spec
  *
  * @author FracPete (fracpete at waikato dot ac dot nz)
@@ -104,6 +103,24 @@ public class CommonCSVLoader
   /** the custom field separator to use. */
   protected String m_CustomFieldSeparator = DEFAULT_CUSTOM_FIELD_SEPARATOR;
 
+  /** whether to use a custom quote character. */
+  protected boolean m_UseCustomQuoteCharacter = false;
+
+  /** the default quote character. */
+  public final static String DEFAULT_CUSTOM_QUOTE_CHARACTER = "\"";
+
+  /** the custom quote character to use. */
+  protected String m_CustomQuoteCharacter = DEFAULT_CUSTOM_FIELD_SEPARATOR;
+  
+  /** whether the file has no header row. */
+  protected boolean m_NoHeader = false;
+
+  /** the default custom header. */
+  public final static String DEFAULT_CUSTOM_HEADER = "";
+
+  /** the custom header. */
+  protected String m_CustomHeader = DEFAULT_CUSTOM_HEADER;
+
   /** the range of nominal attributes. */
   protected Range m_NominalRange = new Range();
 
@@ -141,7 +158,9 @@ public class CommonCSVLoader
    * 			displaying in the explorer/experimenter gui
    */
   public String globalInfo() {
-    return "Reads files in common CSV formats.";
+    return "Reads files in common CSV formats.\n"
+      + "For tab-delimited files, choose TDF as format.\n"
+      + "For other formats, you can specify a custom field separator.";
   }
 
   /**
@@ -234,7 +253,10 @@ public class CommonCSVLoader
    * @param value	the separator
    */
   public void setCustomFieldSeparator(String value) {
-    m_CustomFieldSeparator = value;
+    if (value.length() == 1)
+      m_CustomFieldSeparator = value;
+    else
+      System.err.println("Field separator must be 1 character long!");
   }
 
   /**
@@ -254,6 +276,121 @@ public class CommonCSVLoader
    */
   public String customFieldSeparatorTipText() {
     return "The field separator, when using custom one is enabled.";
+  }
+
+  /**
+   * Sets whether to use the custom quote character.
+   *
+   * @param value	true if to use
+   */
+  public void setUseCustomQuoteCharacter(boolean value) {
+    m_UseCustomQuoteCharacter = value;
+  }
+
+  /**
+   * Returns whether to use the custom quote character.
+   *
+   * @return		true if to use
+   */
+  public boolean getUseCustomQuoteCharacter() {
+    return m_UseCustomQuoteCharacter;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String useCustomQuoteCharacterTipText() {
+    return "If enabled, makes use of the supplied quote character.";
+  }
+
+  /**
+   * Sets the custom quote character.
+   *
+   * @param value	the character
+   */
+  public void setCustomQuoteCharacter(String value) {
+    if (value.length() == 1)
+      m_CustomQuoteCharacter = value;
+    else
+      System.err.println("Quote character must be 1 character long!");
+  }
+
+  /**
+   * Returns the custom quote character.
+   *
+   * @return		the character
+   */
+  public String getCustomQuoteCharacter() {
+    return m_CustomQuoteCharacter;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String customQuoteCharacterTipText() {
+    return "The quote character, when using custom one is enabled.";
+  }
+
+  /**
+   * Sets whether there is no header row present.
+   *
+   * @param value	true if no header row
+   */
+  public void setNoHeader(boolean value) {
+    m_NoHeader = value;
+  }
+
+  /**
+   * Returns whether there is no header row present.
+   *
+   * @return		true if no header row
+   */
+  public boolean getNoHeader() {
+    return m_NoHeader;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String noHeaderTipText() {
+    return "If enabled, assumes no header row in the spradsheet.";
+  }
+
+  /**
+   * Sets the custom header.
+   *
+   * @param value	the column names (comma-separated)
+   */
+  public void setCustomHeader(String value) {
+    m_CustomHeader = value;
+  }
+
+  /**
+   * Returns the custom header.
+   *
+   * @return		the column names (comma-separated)
+   */
+  public String getCustomHeader() {
+    return m_CustomHeader;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String customHeaderTipText() {
+    return "The comma-separated list of column names, ignored if empty.";
   }
 
   /**
@@ -423,6 +560,18 @@ public class CommonCSVLoader
       + "\t(default: " + DEFAULT_CUSTOM_FIELD_SEPARATOR + ")",
       "custom-field-separator", 1, "-custom-field-separator <separator-char>"));
 
+    result.addElement(new Option("\tWhether to use custom quote character\n"
+      + "\t(default: no)",
+      "use-custom-quote-character", 0, "-use-custom-quote-character"));
+
+    result.addElement(new Option("\tThe custom quote character\n"
+      + "\t(default: " + DEFAULT_CUSTOM_QUOTE_CHARACTER + ")",
+      "custom-quote-character", 1, "-custom-quote-character <quote-char>"));
+
+    result.addElement(new Option("\tWhether there is no header row in the spreadsheet\n"
+      + "\t(default: assumes header row present)",
+      "no-header", 0, "-no-header"));
+
     result.addElement(new Option("\tThe attribute range to treat as nominal\n"
       + "\t(default: none)",
       "nominal", 1, "-nominal <range>"));
@@ -470,6 +619,22 @@ public class CommonCSVLoader
       setCustomFieldSeparator(tmp);
     else
       setCustomFieldSeparator(DEFAULT_CUSTOM_FIELD_SEPARATOR);
+
+    setUseCustomQuoteCharacter(Utils.getFlag("use-custom-quote-character", options));
+
+    setNoHeader(Utils.getFlag("no-header", options));
+
+    tmp = Utils.getOption("custom-header", options);
+    if (!tmp.isEmpty())
+      setCustomHeader(tmp);
+    else
+      setCustomHeader(DEFAULT_CUSTOM_HEADER);
+
+    tmp = Utils.getOption("custom-quote-character", options);
+    if (!tmp.isEmpty() && (tmp.length() == 1))
+      setCustomQuoteCharacter(tmp);
+    else
+      setCustomQuoteCharacter(DEFAULT_CUSTOM_QUOTE_CHARACTER);
 
     tmp = Utils.getOption("nominal", options);
     if (!tmp.isEmpty())
@@ -521,6 +686,20 @@ public class CommonCSVLoader
       result.add("-use-custom-field-separator");
       result.add("-custom-field-separator");
       result.add(getCustomFieldSeparator());
+    }
+
+    if (getUseCustomQuoteCharacter()) {
+      result.add("-use-custom-quote-character");
+      result.add("-custom-quote-character");
+      result.add(getCustomQuoteCharacter());
+    }
+
+    if (getNoHeader())
+      result.add("-no-header");
+
+    if (!getCustomHeader().isEmpty()) {
+      result.add("-custom-header");
+      result.add(getCustomHeader());
     }
 
     if (!getNominalRange().getRanges().isEmpty()) {
@@ -675,6 +854,7 @@ public class CommonCSVLoader
     CSVParser 			parser;
     Map<String,Integer> 	header;
     List<String> 		names;
+    List<String>		customNames;
     int 			i;
     int				n;
     List<CSVRecord> 		records;
@@ -696,9 +876,14 @@ public class CommonCSVLoader
       try {
         // parse
         format = CommonCsvFormats.getFormat(m_Format);
-        format = format.withFirstRecordAsHeader();
-        if (m_UseCustomFieldSeparator)
-          format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
+        if (!m_NoHeader)
+	  format = format.withFirstRecordAsHeader();
+        if (m_Format != CommonCsvFormats.TDF) {
+	  if (m_UseCustomFieldSeparator)
+	    format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
+	}
+        if (m_UseCustomQuoteCharacter)
+          format = format.withEscape(m_CustomQuoteCharacter.charAt(0));
         parser = format.parse(m_sourceReader);
         header = parser.getHeaderMap();
         records = parser.getRecords();
@@ -709,10 +894,29 @@ public class CommonCSVLoader
 
 	// init header names
         names = new ArrayList<String>();
-        for (i = 0; i < header.size(); i++)
-          names.add("");
-        for (String name: header.keySet())
-          names.set(header.get(name), name);
+        customNames = new ArrayList<String>();
+        if (!m_CustomHeader.isEmpty())
+          customNames.addAll(Arrays.asList(m_CustomHeader.split(",")));
+        if (m_NoHeader) {
+	  for (i = 0; i < records.get(0).size(); i++) {
+	    if (i < customNames.size())
+	      names.add(customNames.get(i));
+	    else
+	      names.add("att-" + (i + 1));
+	  }
+	}
+	else {
+	  for (i = 0; i < header.size(); i++) {
+	    if (i < customNames.size())
+	      names.add(customNames.get(i));
+	    else
+	      names.add("");
+	  }
+	  for (String name : header.keySet()) {
+	    if (names.get(header.get(name)).isEmpty())
+	      names.set(header.get(name), name);
+	  }
+	}
 
 	// init types
 	types = new AttributeType[records.get(0).size()];
