@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
@@ -906,10 +907,52 @@ public class CommonCSVLoader
       return false;
     }
   }
-  
+
+  /**
+   * Returns the list of custom column names.
+   *
+   * @param max 	the maximum number of columns, -1 just use the custom header ones
+   * @return		the column names
+   */
+  protected List<String> customColumnNames(int max) {
+    List<String> 	result;
+    int			i;
+    int			start;
+
+    result = new ArrayList<String>();
+    if (!m_CustomHeader.isEmpty())
+      result.addAll(Arrays.asList(m_CustomHeader.split(",")));
+
+    if (max > -1) {
+      start = result.size();
+      for (i = start; i < max; i++)
+	result.add("att-" + (i + 1));
+    }
+
+    return result;
+  }
+
+  /**
+   * Initializes the m_Data and m_structure member variables.
+   *
+   * @param atts	the attribute definitions to use
+   * @param capacity 	the number of rows to reserve in m_Data
+   */
+  protected void initInstances(ArrayList<Attribute> atts, int capacity) {
+    String	relation;
+
+    if (m_sourceFile != null)
+      relation = m_sourceFile.getName();
+    else
+      relation = "CommonCSV";
+    m_Data = new Instances(relation, atts, capacity);
+    m_structure = new Instances(m_Data, 0);
+  }
+
   /**
    * Determines and returns (if possible) the structure (internally the 
    * header) of the data set as an empty set of instances.
+   * If not yet read, also reads the full dataset into m_Data.
    *
    * @return 			the structure of the data set as an empty set 
    * 				of Instances
@@ -918,9 +961,9 @@ public class CommonCSVLoader
   public Instances getStructure() throws IOException {
     CSVFormat 			format;
     CSVParser 			parser;
-    Map<String,Integer> 	header;
     List<String> 		names;
-    List<String>		customNames;
+    Set<String>			namesSet;
+    String			nameTmp;
     Map<String,Integer>		attIndex;
     int 			i;
     int				n;
@@ -938,216 +981,244 @@ public class CommonCSVLoader
     String[]			parts;
     Range			specRange;
     String[]			attList;
+    int				firstDataRow;
 
     if (m_sourceReader == null)
       throw new IOException("No source has been specified");
 
-    if (m_structure == null) {
-      try {
-        // parse
-        format = CommonCsvFormats.getFormat(m_Format);
-        if (!m_NoHeader)
-	  format = format.withFirstRecordAsHeader();
-        if (m_Format != CommonCsvFormats.TDF) {
-	  if (m_UseCustomFieldSeparator)
-	    format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
-	}
-        if (m_UseCustomQuoteCharacter)
-          format = format.withEscape(m_CustomQuoteCharacter.charAt(0));
-        parser = format.parse(m_sourceReader);
-        header = parser.getHeaderMap();
-        records = parser.getRecords();
-        numRows = records.size();
-        atts = new ArrayList<Attribute>();
-	if (numRows == 0)
-	  throw new IOException("No rows in CSV file?");
+    if (m_structure != null)
+      return new Instances(m_structure, 0);
 
-	// init header names
-        names = new ArrayList<String>();
-        customNames = new ArrayList<String>();
-        if (!m_CustomHeader.isEmpty())
-          customNames.addAll(Arrays.asList(m_CustomHeader.split(",")));
-        if (m_NoHeader) {
-	  for (i = 0; i < records.get(0).size(); i++) {
-	    if (i < customNames.size())
-	      names.add(customNames.get(i));
-	    else
-	      names.add("att-" + (i + 1));
-	  }
-	}
-	else {
-	  for (i = 0; i < header.size(); i++) {
-	    if (i < customNames.size())
-	      names.add(customNames.get(i));
-	    else
-	      names.add("");
-	  }
-	  for (String name : header.keySet()) {
-	    if (names.get(header.get(name)).isEmpty())
-	      names.set(header.get(name), name);
-	  }
-	}
-	attIndex = new HashMap<String, Integer>();
-        for (String name: names)
-          attIndex.put(name, attIndex.size());
-
-	// init types
-	types = new AttributeType[records.get(0).size()];
-	m_NominalRange.setUpper(types.length - 1);
-	m_StringRange.setUpper(types.length - 1);
-	m_DateRange.setUpper(types.length - 1);
-	hasNominalValues = false;
-	nominalValues = new HashMap<Integer, Collection<String>>();
-	sortLabels = new HashMap<Integer, Boolean>();
-	for (i = 0; i < types.length; i++) {
-	  types[i] = AttributeType.NUMERIC;
-	  if (m_NominalRange.isInRange(i)) {
-	    types[i] = AttributeType.NOMINAL;
-	    hasNominalValues = true;
-	  }
-	  else if (m_StringRange.isInRange(i)) {
-	    types[i] = AttributeType.STRING;
-	  }
-	  else if (m_DateRange.isInRange(i)) {
-	    types[i] = AttributeType.DATE;
-	  }
-	}
-	if (numRows == 1) {
-	  // header
+    try {
+      // parse
+      format = CommonCsvFormats.getFormat(m_Format);
+      if (m_Format != CommonCsvFormats.TDF) {
+	if (m_UseCustomFieldSeparator)
+	  format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
+      }
+      if (m_UseCustomQuoteCharacter)
+	format = format.withEscape(m_CustomQuoteCharacter.charAt(0));
+      format.withAllowMissingColumnNames();
+      parser = format.parse(m_sourceReader);
+      records = parser.getRecords();
+      numRows = records.size();
+      firstDataRow = m_NoHeader ? 0 : 1;
+      atts = new ArrayList<Attribute>();
+      if (numRows == 0) {
+	if (m_NoHeader) {
+	  names = customColumnNames(-1);
+	  if (names.size() == 0)
+	    throw new IOException("No rows in CSV file and no custom header defined!");
 	  for (i = 0; i < names.size(); i++)
 	    atts.add(new Attribute(names.get(i)));
-	  // no data
-	  m_Data = new Instances("CSV", atts, 0);
-	  m_structure = new Instances(m_Data, 0);
+	  initInstances(atts, 0);
+	  return new Instances(m_structure, 0);
 	}
 	else {
-	  // check data
-	  for (n = 0; n < records.size(); n++) {
-	    noNumeric = true;
-	    for (i = 0; i < types.length && i < records.get(n).size(); i++) {
-	      if (types[i] == AttributeType.NUMERIC) {
-	        noNumeric = false;
-	        cell = records.get(n).get(i);
-	        if (cell.equals(m_MissingValue))
-	          continue;
-	        if (!isNumeric(cell))
-	          types[i] = AttributeType.STRING;
-	      }
-	    }
-	    // all columns contain string values, no need to further investigate
-	    if (noNumeric)
-	      break;
-	  }
-	  // nominal values
-	  if (hasNominalValues) {
-	    for (n = 0; n < records.size(); n++) {
-	      for (i = 0; i < types.length && i < records.get(n).size(); i++) {
-		if (types[i] == AttributeType.NOMINAL) {
-		  if (!nominalValues.containsKey(i)) {
-		    nominalValues.put(i, new HashSet<String>());
-		    sortLabels.put(i, true);
-		  }
-		  cell = records.get(n).get(i);
-		  if (cell.equals(m_MissingValue))
-		    continue;
-		  nominalValues.get(i).add(cell);
-		}
-	      }
-	    }
-	  }
-
-	  // label specs
-          for (String labelSpec: m_nominalLabelSpecs) {
-	    parts = labelSpec.split(":");
-	    if (parts.length != 2)
-	      throw new IllegalStateException("Invalid label specification (required: 'indices/names:list,of,labels'): " + labelSpec);
-	    labels = new ArrayList<String>(Arrays.asList(parts[1].split(",")));
-	    try {
-	      specRange = new Range(parts[0]);
-	      specRange.setUpper(types.length + 1);
-	      for (int index: specRange.getSelection()) {
-	        nominalValues.put(index, labels);
-	        sortLabels.put(index, false);
-		types[index] = AttributeType.NOMINAL;
-	      }
-	    }
-	    catch (Exception e) {
-	      attList = parts[0].split(",");
-	      for (String name: attList) {
-	        i = attIndex.get(name);
-	        nominalValues.put(i, labels);
-	        sortLabels.put(i, false);
-		types[i] = AttributeType.NOMINAL;
-	      }
-	    }
-          }
-
-	  // header
-	  for (i = 0; i < names.size(); i++) {
-	    switch (types[i]) {
-	      case NUMERIC:
-		atts.add(new Attribute(names.get(i)));
-	        break;
-	      case NOMINAL:
-	        labels = new ArrayList<String>(nominalValues.get(i));
-	        if (sortLabels.get(i))
-		  Collections.sort(labels);
-		atts.add(new Attribute(names.get(i), labels));
-	        break;
-	      case STRING:
-		atts.add(new Attribute(names.get(i), (List<String>) null));
-	        break;
-	      case DATE:
-	        atts.add(new Attribute(names.get(i), m_DateFormat));
-	        break;
-	      default:
-	        throw new IllegalStateException("Unhandled attribute type: " + types[i]);
-	    }
-	  }
-	  m_Data = new Instances("CSV", atts, records.size());
-
-	  // data
-	  for (n = 0; n < records.size(); n++) {
-	    values = new double[types.length];
-	    for (i = 0; i < types.length && i < records.get(n).size(); i++) {
-	      cell = records.get(n).get(i);
-	      if (cell.equals(m_MissingValue)) {
-		values[i] = Utils.missingValue();
-	      }
-	      else {
-		switch (types[i]) {
-		  case NUMERIC:
-		    values[i] = Double.parseDouble(cell);
-		    break;
-		  case NOMINAL:
-		    values[i] = m_Data.attribute(i).indexOfValue(cell);
-		    break;
-		  case STRING:
-		    values[i] = m_Data.attribute(i).addStringValue(cell);
-		    break;
-		  case DATE:
-		    values[i] = m_Data.attribute(i).parseDate(cell);
-		    break;
-		  default:
-		    throw new IllegalStateException("Unhandled attribute type: " + types[i]);
-		}
-	      }
-	    }
-	    m_Data.add(new DenseInstance(1.0, values));
-	  }
-	  m_structure = new Instances(m_Data, 0);
+	  throw new IOException("No rows in CSV file!");
 	}
       }
-      catch (IOException ioe) {
-	// just re-throw it
-	throw ioe;
+      if (numRows == 1) {
+        if (!m_NoHeader) {
+          for (i = 0; i < records.get(0).size(); i++)
+	    atts.add(new Attribute(records.get(0).get(i)));
+	  initInstances(atts, 0);
+	  return new Instances(m_structure, 0);
+	}
       }
-      catch (Exception e) {
-	throw new RuntimeException(e);
-      }
-    }
 
-    return new Instances(m_structure, 0);
+      // init header names
+      names = new ArrayList<String>();
+      if (m_NoHeader) {
+        names.addAll(customColumnNames(records.get(0).size()));
+      }
+      else {
+        names.addAll(customColumnNames(-1));
+        for (i = names.size(); i < records.get(0).size(); i++)
+          names.add(records.get(0).get(i));
+      }
+
+      // disambiguate names if necessary
+      namesSet = new HashSet<String>();
+      for (i = 0; i < names.size(); i++) {
+	nameTmp = names.get(i);
+	if (!nameTmp.isEmpty() && !namesSet.contains(nameTmp)) {
+	  namesSet.add(nameTmp);
+	  continue;
+	}
+
+	n = 1;
+	while (nameTmp.isEmpty() || namesSet.contains(nameTmp)) {
+	  n++;
+	  if (names.get(i).isEmpty())
+	    nameTmp = "att-" + n;
+	  else
+	    nameTmp = names.get(i) + "-" + n;
+	}
+	System.err.println("Column #" + i + " required disambiguating: '" + names.get(i) + "' -> '" + nameTmp + "'");
+	namesSet.add(nameTmp);
+	names.set(i, nameTmp);
+      }
+
+      // generate name index for label specs
+      attIndex = new HashMap<String, Integer>();
+      for (String name: names)
+	attIndex.put(name, attIndex.size());
+
+      // init types
+      types = new AttributeType[records.get(0).size()];
+      m_NominalRange.setUpper(types.length - 1);
+      m_StringRange.setUpper(types.length - 1);
+      m_DateRange.setUpper(types.length - 1);
+      hasNominalValues = false;
+      nominalValues = new HashMap<Integer, Collection<String>>();
+      sortLabels = new HashMap<Integer, Boolean>();
+      for (i = 0; i < types.length; i++) {
+	types[i] = AttributeType.NUMERIC;
+	if (m_NominalRange.isInRange(i)) {
+	  types[i] = AttributeType.NOMINAL;
+	  hasNominalValues = true;
+	}
+	else if (m_StringRange.isInRange(i)) {
+	  types[i] = AttributeType.STRING;
+	}
+	else if (m_DateRange.isInRange(i)) {
+	  types[i] = AttributeType.DATE;
+	}
+      }
+
+      if ((numRows == 1) && !m_NoHeader) {
+	for (i = 0; i < names.size(); i++)
+	  atts.add(new Attribute(names.get(i)));
+	initInstances(atts, 0);
+	return new Instances(m_structure, 0);
+      }
+
+      // check numeric columns
+      for (n = firstDataRow; n < records.size(); n++) {
+	noNumeric = true;
+	for (i = 0; i < types.length && i < records.get(n).size(); i++) {
+	  if (types[i] == AttributeType.NUMERIC) {
+	    noNumeric = false;
+	    cell = records.get(n).get(i);
+	    if (cell.equals(m_MissingValue))
+	      continue;
+	    if (!isNumeric(cell))
+	      types[i] = AttributeType.STRING;
+	  }
+	}
+	// all columns contain string values, no need to further investigate
+	if (noNumeric)
+	  break;
+      }
+
+      // collect nominal values
+      if (hasNominalValues) {
+	for (n = firstDataRow; n < records.size(); n++) {
+	  for (i = 0; i < types.length && i < records.get(n).size(); i++) {
+	    if (types[i] == AttributeType.NOMINAL) {
+	      if (!nominalValues.containsKey(i)) {
+		nominalValues.put(i, new HashSet<String>());
+		sortLabels.put(i, true);  // label specs override this
+	      }
+	      cell = records.get(n).get(i);
+	      if (cell.equals(m_MissingValue))
+		continue;
+	      nominalValues.get(i).add(cell);
+	    }
+	  }
+	}
+      }
+
+      // label specs
+      for (String labelSpec: m_nominalLabelSpecs) {
+	parts = labelSpec.split(":");
+	if (parts.length != 2)
+	  throw new IllegalStateException("Invalid label specification (required: 'indices/names:list,of,labels'): " + labelSpec);
+	labels = new ArrayList<String>(Arrays.asList(parts[1].split(",")));
+	try {
+	  specRange = new Range(parts[0]);
+	  specRange.setUpper(types.length + 1);
+	  for (int index: specRange.getSelection()) {
+	    nominalValues.put(index, labels);
+	    sortLabels.put(index, false);
+	    types[index] = AttributeType.NOMINAL;
+	  }
+	}
+	catch (Exception e) {
+	  attList = parts[0].split(",");
+	  for (String name: attList) {
+	    i = attIndex.get(name);
+	    nominalValues.put(i, labels);
+	    sortLabels.put(i, false);
+	    types[i] = AttributeType.NOMINAL;
+	  }
+	}
+      }
+
+      // header
+      for (i = 0; i < names.size(); i++) {
+	switch (types[i]) {
+	  case NUMERIC:
+	    atts.add(new Attribute(names.get(i)));
+	    break;
+	  case NOMINAL:
+	    labels = new ArrayList<String>(nominalValues.get(i));
+	    if (sortLabels.get(i))
+	      Collections.sort(labels);
+	    atts.add(new Attribute(names.get(i), labels));
+	    break;
+	  case STRING:
+	    atts.add(new Attribute(names.get(i), (List<String>) null));
+	    break;
+	  case DATE:
+	    atts.add(new Attribute(names.get(i), m_DateFormat));
+	    break;
+	  default:
+	    throw new IllegalStateException("Unhandled attribute type: " + types[i]);
+	}
+      }
+      initInstances(atts, records.size());
+
+      // data
+      for (n = firstDataRow; n < records.size(); n++) {
+	values = new double[types.length];
+	for (i = 0; i < types.length && i < records.get(n).size(); i++) {
+	  cell = records.get(n).get(i);
+	  if (cell.equals(m_MissingValue)) {
+	    values[i] = Utils.missingValue();
+	  }
+	  else {
+	    switch (types[i]) {
+	      case NUMERIC:
+		values[i] = Double.parseDouble(cell);
+		break;
+	      case NOMINAL:
+		values[i] = m_Data.attribute(i).indexOfValue(cell);
+		break;
+	      case STRING:
+		values[i] = m_Data.attribute(i).addStringValue(cell);
+		break;
+	      case DATE:
+		values[i] = m_Data.attribute(i).parseDate(cell);
+		break;
+	      default:
+		throw new IllegalStateException("Unhandled attribute type: " + types[i]);
+	    }
+	  }
+	}
+	m_Data.add(new DenseInstance(1.0, values));
+      }
+
+      return new Instances(m_structure, 0);
+    }
+    catch (IOException ioe) {
+      // just re-throw it
+      throw ioe;
+    }
+    catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
   
   /**
