@@ -66,16 +66,24 @@ public class CommonCSVLoader
   private static final long serialVersionUID = 3764533621135196582L;
 
   /** the default file extension */
-  public static String FILE_EXTENSION = ".csv";
+  public final static String FILE_EXTENSION = ".csv";
 
   /** the text file extension */
-  public static String FILE_EXTENSION_TEXT = ".txt";
+  public final static String FILE_EXTENSION_TEXT = ".txt";
 
   /** the tab-delimited file extension */
-  public static String FILE_EXTENSION_TSV = ".tsv";
+  public final static String FILE_EXTENSION_TSV = ".tsv";
 
   /** the format. */
   protected int m_Format = CommonCsvFormats.DEFAULT;
+
+  /** whether to use a custom field separator. */
+  protected boolean m_UseCustomFieldSeparator = false;
+
+  public final static String DEFAULT_CUSTOM_FIELD_SEPARATOR = ",";
+
+  /** the custom field separator to use. */
+  protected String m_CustomFieldSeparator = DEFAULT_CUSTOM_FIELD_SEPARATOR;
 
   /** the url */
   protected String m_URL = "http://";
@@ -153,6 +161,62 @@ public class CommonCSVLoader
   }
 
   /**
+   * Sets whether to use the custom field separator.
+   *
+   * @param value	true if to use
+   */
+  public void setUseCustomFieldSeparator(boolean value) {
+    m_UseCustomFieldSeparator = value;
+  }
+
+  /**
+   * Returns whether to use the custom field separator.
+   *
+   * @return		true if to use
+   */
+  public boolean getUseCustomFieldSeparator() {
+    return m_UseCustomFieldSeparator;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String useCustomFieldSeparatorTipText() {
+    return "If enabled, makes use of the supplied field separator.";
+  }
+
+  /**
+   * Sets the custom field separator.
+   *
+   * @param value	the separator
+   */
+  public void setCustomFieldSeparator(String value) {
+    m_CustomFieldSeparator = value;
+  }
+
+  /**
+   * Returns the custom field separator.
+   *
+   * @return		the separator
+   */
+  public String getCustomFieldSeparator() {
+    return m_CustomFieldSeparator;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String customFieldSeparatorTipText() {
+    return "The field separator, when using custom one is enabled.";
+  }
+
+  /**
    * Returns an enumeration describing the available options.
    *
    * @return an enumeration of all the available options.
@@ -163,6 +227,14 @@ public class CommonCSVLoader
     result.addElement(new Option("\tThe CSV format to use\n"
       + "\t(default: DEFAULT)",
       "F", 1, "-F " + Tag.toOptionList(CommonCsvFormats.TAGS_FORMATS)));
+
+    result.addElement(new Option("\tWhether to use custom field separator\n"
+      + "\t(default: no)",
+      "use-custom-field-separator", 0, "-use-custom-field-separator"));
+
+    result.addElement(new Option("\tThe custom field separator\n"
+      + "\t(default: " + DEFAULT_CUSTOM_FIELD_SEPARATOR + ")",
+      "custom-field-separator", 1, "-custom-field-separator <separator-char>"));
 
     return result.elements();
   }
@@ -175,11 +247,22 @@ public class CommonCSVLoader
    * @throws Exception if an option is not supported
    */
   public void setOptions(String[] options) throws Exception {
-    String format = Utils.getOption('F', options);
-    if (!format.isEmpty())
-      setFormat(new SelectedTag(format, CommonCsvFormats.TAGS_FORMATS));
+    String 	tmp;
+
+    tmp = Utils.getOption('F', options);
+    if (!tmp.isEmpty())
+      setFormat(new SelectedTag(tmp, CommonCsvFormats.TAGS_FORMATS));
     else
       setFormat(new SelectedTag(CommonCsvFormats.DEFAULT, CommonCsvFormats.TAGS_FORMATS));
+
+    setUseCustomFieldSeparator(Utils.getFlag("use-custom-field-separator", options));
+
+    tmp = Utils.getOption("custom-field-separator", options);
+    if (!tmp.isEmpty() && (tmp.length() == 1))
+      setCustomFieldSeparator(tmp);
+    else
+      setCustomFieldSeparator(DEFAULT_CUSTOM_FIELD_SEPARATOR);
+
 
     Utils.checkForRemainingOptions(options);
   }
@@ -196,6 +279,12 @@ public class CommonCSVLoader
 
     result.add("-F");
     result.add(getFormat().getSelectedTag().getIDStr());
+
+    if (getUseCustomFieldSeparator()) {
+      result.add("-use-custom-field-separator");
+      result.add("-custom-field-separator");
+      result.add(getCustomFieldSeparator());
+    }
 
     return result.toArray(new String[0]);
   }
@@ -331,7 +420,10 @@ public class CommonCSVLoader
     if (m_structure == null) {
       try {
         CSVFormat format = CommonCsvFormats.getFormat(m_Format);
-        CSVParser parser = format.withFirstRecordAsHeader().parse(m_sourceReader);
+        format = format.withFirstRecordAsHeader();
+        if (m_UseCustomFieldSeparator)
+          format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
+        CSVParser parser = format.parse(m_sourceReader);
         Map<String,Integer> header = parser.getHeaderMap();
         List<String> names = new ArrayList<String>();
         for (int i = 0; i < header.size(); i++)
