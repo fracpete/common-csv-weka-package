@@ -15,7 +15,7 @@
 
 /*
  * CommonCSVLoader.java
- * Copyright (C) 2019 University of Waikato, Hamilton, New Zealand
+ * Copyright (C) 2019-2020 FracPete
  *
  */
 
@@ -48,21 +48,22 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
 /**
- * TODO:
- * - nominal att spec
+ * Reads files in common CSV formats.
+ * For tab-delimited files, choose TDF as format.
+ * For other formats, you can specify a custom field separator.
  *
- * @author FracPete (fracpete at waikato dot ac dot nz)
+ * @author FracPete (fracpete at gmail dot com)
  * @see Loader
  */
 public class CommonCSVLoader
@@ -123,6 +124,9 @@ public class CommonCSVLoader
 
   /** the range of nominal attributes. */
   protected Range m_NominalRange = new Range();
+
+  /** The user-supplied legal nominal values - each entry in the list is a spec */
+  protected List<String> m_nominalLabelSpecs = new ArrayList<String>();
 
   /** the range of string attributes. */
   protected Range m_StringRange = new Range();
@@ -422,6 +426,46 @@ public class CommonCSVLoader
   }
 
   /**
+   * Set label specifications for nominal attributes.
+   *
+   * @param specs an array of label specifications
+   */
+  public void setNominalLabelSpecs(Object[] specs) {
+    m_nominalLabelSpecs.clear();
+    for (Object spec : specs)
+      m_nominalLabelSpecs.add(spec.toString());
+  }
+
+  /**
+   * Get label specifications for nominal attributes.
+   *
+   * @return an array of label specifications
+   */
+  public Object[] getNominalLabelSpecs() {
+    return m_nominalLabelSpecs.toArray(new String[0]);
+  }
+
+  /**
+   * Returns the tip text for this property.
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String nominalLabelSpecsTipText() {
+    return "Optional specification of legal labels for nominal "
+      + "attributes. May be specified multiple times. "
+      + "Batch mode can determine this "
+      + "automatically (and so can incremental mode if "
+      + "the first in memory buffer load of instances "
+      + "contains an example of each legal value). The "
+      + "spec contains two parts separated by a \":\". The "
+      + "first part can be a range of attribute indexes or "
+      + "a comma-separated list off attruibute names; the "
+      + "second part is a comma-separated list of labels. E.g "
+      + "\"1,2,4-6:red,green,blue\" or \"att1,att2:red,green,blue\"";
+  }
+
+  /**
    * Sets the range of attributes to treat as string.
    *
    * @param value	the range
@@ -576,6 +620,15 @@ public class CommonCSVLoader
       + "\t(default: none)",
       "nominal", 1, "-nominal <range>"));
 
+    result.add(new Option("\tOptional specification of legal labels for nominal\n"
+      + "\tattributes. May be specified multiple times.\n"
+      + "\tThe spec contains two parts separated by a \":\".\n"
+      + "\tThe first part can be a range of attribute indexes or\n"
+      + "\ta comma-separated list off attruibute names;\n"
+      + "\tthe second part is a comma-separated list of labels. E.g.:\n"
+      + "\t\"1,2,4-6:red,green,blue\" or \"att1,att2:red,green,blue\"",
+      "nominal-label-spec", 1, "-nominal-label-spec <nominal label spec>"));
+
     result.addElement(new Option("\tThe attribute range to treat as string\n"
       + "\t(default: none)",
       "string", 1, "-string <range>"));
@@ -642,6 +695,14 @@ public class CommonCSVLoader
     else
       setNominalRange(new Range());
 
+    m_nominalLabelSpecs.clear();
+    while (true) {
+      tmp = Utils.getOption("nominal-label-spec", options);
+      if (tmp.isEmpty())
+        break;
+      m_nominalLabelSpecs.add(tmp);
+    }
+
     tmp = Utils.getOption("string", options);
     if (!tmp.isEmpty())
       setStringRange(new Range(tmp));
@@ -705,6 +766,11 @@ public class CommonCSVLoader
     if (!getNominalRange().getRanges().isEmpty()) {
       result.add("-nominal");
       result.add(getNominalRange().getRanges());
+
+      for (String spec : m_nominalLabelSpecs) {
+	result.add("-nominal-label-spec");
+	result.add(spec);
+      }
     }
 
     if (!getStringRange().getRanges().isEmpty()) {
@@ -855,6 +921,7 @@ public class CommonCSVLoader
     Map<String,Integer> 	header;
     List<String> 		names;
     List<String>		customNames;
+    Map<String,Integer>		attIndex;
     int 			i;
     int				n;
     List<CSVRecord> 		records;
@@ -865,9 +932,12 @@ public class CommonCSVLoader
     String 			cell;
     double[] 			values;
     boolean			hasNominalValues;
-    Map<Integer,Set<String>>	nominalValues;
+    Map<Integer,Collection<String>>	nominalValues;
     Map<Integer,Boolean>	sortLabels;
     List<String>		labels;
+    String[]			parts;
+    Range			specRange;
+    String[]			attList;
 
     if (m_sourceReader == null)
       throw new IOException("No source has been specified");
@@ -917,6 +987,9 @@ public class CommonCSVLoader
 	      names.set(header.get(name), name);
 	  }
 	}
+	attIndex = new HashMap<String, Integer>();
+        for (String name: names)
+          attIndex.put(name, attIndex.size());
 
 	// init types
 	types = new AttributeType[records.get(0).size()];
@@ -924,7 +997,7 @@ public class CommonCSVLoader
 	m_StringRange.setUpper(types.length - 1);
 	m_DateRange.setUpper(types.length - 1);
 	hasNominalValues = false;
-	nominalValues = new HashMap<Integer, Set<String>>();
+	nominalValues = new HashMap<Integer, Collection<String>>();
 	sortLabels = new HashMap<Integer, Boolean>();
 	for (i = 0; i < types.length; i++) {
 	  types[i] = AttributeType.NUMERIC;
@@ -972,7 +1045,7 @@ public class CommonCSVLoader
 		if (types[i] == AttributeType.NOMINAL) {
 		  if (!nominalValues.containsKey(i)) {
 		    nominalValues.put(i, new HashSet<String>());
-		    sortLabels.put(i, true);  // TODO not if label spec
+		    sortLabels.put(i, true);
 		  }
 		  cell = records.get(n).get(i);
 		  if (cell.equals(m_MissingValue))
@@ -982,6 +1055,32 @@ public class CommonCSVLoader
 	      }
 	    }
 	  }
+
+	  // label specs
+          for (String labelSpec: m_nominalLabelSpecs) {
+	    parts = labelSpec.split(":");
+	    if (parts.length != 2)
+	      throw new IllegalStateException("Invalid label specification (required: 'indices/names:list,of,labels'): " + labelSpec);
+	    labels = new ArrayList<String>(Arrays.asList(parts[1].split(",")));
+	    try {
+	      specRange = new Range(parts[0]);
+	      specRange.setUpper(types.length + 1);
+	      for (int index: specRange.getSelection()) {
+	        nominalValues.put(index, labels);
+	        sortLabels.put(index, false);
+		types[index] = AttributeType.NOMINAL;
+	      }
+	    }
+	    catch (Exception e) {
+	      attList = parts[0].split(",");
+	      for (String name: attList) {
+	        i = attIndex.get(name);
+	        nominalValues.put(i, labels);
+	        sortLabels.put(i, false);
+		types[i] = AttributeType.NOMINAL;
+	      }
+	    }
+          }
 
 	  // header
 	  for (i = 0; i < names.size(); i++) {
