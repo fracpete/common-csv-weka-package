@@ -30,6 +30,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Option;
 import weka.core.OptionHandler;
+import weka.core.Range;
 import weka.core.RevisionUtils;
 import weka.core.SelectedTag;
 import weka.core.Tag;
@@ -44,16 +45,23 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
 /**
- <!-- globalinfo-start -->
- <!-- globalinfo-end -->
+ * TODO:
+ * - no header
+ * - customer header
+ * - nominal att spec
  *
  * @author FracPete (fracpete at waikato dot ac dot nz)
  * @see Loader
@@ -64,6 +72,16 @@ public class CommonCSVLoader
 
   /** for serialization */
   private static final long serialVersionUID = 3764533621135196582L;
+
+  /**
+   * The types of attributes.
+   */
+  public enum AttributeType {
+    NUMERIC,
+    NOMINAL,
+    STRING,
+    DATE,
+  }
 
   /** the default file extension */
   public final static String FILE_EXTENSION = ".csv";
@@ -80,10 +98,32 @@ public class CommonCSVLoader
   /** whether to use a custom field separator. */
   protected boolean m_UseCustomFieldSeparator = false;
 
+  /** the default field separator. */
   public final static String DEFAULT_CUSTOM_FIELD_SEPARATOR = ",";
 
   /** the custom field separator to use. */
   protected String m_CustomFieldSeparator = DEFAULT_CUSTOM_FIELD_SEPARATOR;
+
+  /** the range of nominal attributes. */
+  protected Range m_NominalRange = new Range();
+
+  /** the range of string attributes. */
+  protected Range m_StringRange = new Range();
+
+  /** the range of date attributes. */
+  protected Range m_DateRange = new Range();
+
+  /** the default date format. */
+  public final static String DEFAULT_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+
+  /** the date format. */
+  protected String m_DateFormat = DEFAULT_DATE_FORMAT;
+
+  /** the default missing value. */
+  public final static String DEFAULT_MISSING_VALUE = "";
+
+  /** the missing value. */
+  protected String m_MissingValue = DEFAULT_MISSING_VALUE;
 
   /** the url */
   protected String m_URL = "http://";
@@ -217,6 +257,153 @@ public class CommonCSVLoader
   }
 
   /**
+   * Sets the range of attributes to treat as nominal.
+   *
+   * @param value	the range
+   */
+  public void setNominalRange(Range value) {
+    m_NominalRange = value;
+  }
+
+  /**
+   * Returns the range of attributes to treat as nominal.
+   *
+   * @return		the range
+   */
+  public Range getNominalRange() {
+    return m_NominalRange;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String nominalRangeTipText() {
+    return "The range of attributes to treat as nominal.";
+  }
+
+  /**
+   * Sets the range of attributes to treat as string.
+   *
+   * @param value	the range
+   */
+  public void setStringRange(Range value) {
+    m_StringRange = value;
+  }
+
+  /**
+   * Returns the range of attributes to treat as string.
+   *
+   * @return		the range
+   */
+  public Range getStringRange() {
+    return m_StringRange;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String stringRangeTipText() {
+    return "The range of attributes to treat as string.";
+  }
+
+  /**
+   * Sets the range of attributes to treat as date.
+   *
+   * @param value	the range
+   */
+  public void setDateRange(Range value) {
+    m_DateRange = value;
+  }
+
+  /**
+   * Returns the range of attributes to treat as date.
+   *
+   * @return		the range
+   */
+  public Range getDateRange() {
+    return m_DateRange;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String dateRangeTipText() {
+    return "The range of attributes to treat as date.";
+  }
+
+  /**
+   * Sets the format for parsing the date attribute(s).
+   *
+   * @param value	the format
+   */
+  public void setDateFormat(String value) {
+    try {
+      new SimpleDateFormat(value);
+      m_DateFormat = value;
+    }
+    catch (Exception e) {
+      System.err.println("Failed to parse date format: " + value);
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Returns the format for parsing the date attribute(s).
+   *
+   * @return		the format
+   */
+  public String getDateFormat() {
+    return m_DateFormat;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String dateFormatTipText() {
+    return "The format for parsing the date attribute(s).";
+  }
+
+  /**
+   * Sets the missing value.
+   *
+   * @param value	the missing value
+   */
+  public void setMissingValue(String value) {
+    m_MissingValue= value;
+  }
+
+  /**
+   * Returns the missing value.
+   *
+   * @return		the missing value
+   */
+  public String getMissingValue() {
+    return m_MissingValue;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String missingValueTipText() {
+    return "The string to interpret as missing value.";
+  }
+
+  /**
    * Returns an enumeration describing the available options.
    *
    * @return an enumeration of all the available options.
@@ -235,6 +422,27 @@ public class CommonCSVLoader
     result.addElement(new Option("\tThe custom field separator\n"
       + "\t(default: " + DEFAULT_CUSTOM_FIELD_SEPARATOR + ")",
       "custom-field-separator", 1, "-custom-field-separator <separator-char>"));
+
+    result.addElement(new Option("\tThe attribute range to treat as nominal\n"
+      + "\t(default: none)",
+      "nominal", 1, "-nominal <range>"));
+
+    result.addElement(new Option("\tThe attribute range to treat as string\n"
+      + "\t(default: none)",
+      "string", 1, "-string <range>"));
+
+    result.addElement(new Option("\tThe attribute range to treat as date\n"
+      + "\t(default: none)",
+      "date", 1, "-date <range>"));
+
+    result.addElement(new Option("\tThe format to use for parsing the date attribute(s)\n"
+      + "\tsee: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/format/DateTimeFormatter.html\n"
+      + "\t(default: " + DEFAULT_DATE_FORMAT + ")",
+      "date-format", 1, "-date-format <format>"));
+
+    result.addElement(new Option("\tThe string to interpret as missing value\n"
+      + "\t(default: '" + DEFAULT_MISSING_VALUE + "')",
+      "missing-value", 1, "-missing-value <string>"));
 
     return result.elements();
   }
@@ -263,6 +471,35 @@ public class CommonCSVLoader
     else
       setCustomFieldSeparator(DEFAULT_CUSTOM_FIELD_SEPARATOR);
 
+    tmp = Utils.getOption("nominal", options);
+    if (!tmp.isEmpty())
+      setNominalRange(new Range(tmp));
+    else
+      setNominalRange(new Range());
+
+    tmp = Utils.getOption("string", options);
+    if (!tmp.isEmpty())
+      setStringRange(new Range(tmp));
+    else
+      setStringRange(new Range());
+
+    tmp = Utils.getOption("date", options);
+    if (!tmp.isEmpty())
+      setDateRange(new Range(tmp));
+    else
+      setDateRange(new Range());
+
+    tmp = Utils.getOption("date-format", options);
+    if (!tmp.isEmpty())
+      setDateFormat(tmp);
+    else
+      setDateFormat(DEFAULT_DATE_FORMAT);
+
+    tmp = Utils.getOption("missing-value", options);
+    if (!tmp.isEmpty())
+      setMissingValue(tmp);
+    else
+      setMissingValue(DEFAULT_MISSING_VALUE);
 
     Utils.checkForRemainingOptions(options);
   }
@@ -285,6 +522,26 @@ public class CommonCSVLoader
       result.add("-custom-field-separator");
       result.add(getCustomFieldSeparator());
     }
+
+    if (!getNominalRange().getRanges().isEmpty()) {
+      result.add("-nominal");
+      result.add(getNominalRange().getRanges());
+    }
+
+    if (!getStringRange().getRanges().isEmpty()) {
+      result.add("-string");
+      result.add(getStringRange().getRanges());
+    }
+
+    if (!getDateRange().getRanges().isEmpty()) {
+      result.add("-date");
+      result.add(getDateRange().getRanges());
+      result.add("-date-format");
+      result.add(getDateFormat());
+    }
+
+    result.add("-missing-value");
+    result.add(getMissingValue());
 
     return result.toArray(new String[0]);
   }
@@ -414,33 +671,73 @@ public class CommonCSVLoader
    * @throws IOException        if an error occurs
    */
   public Instances getStructure() throws IOException {
+    CSVFormat 			format;
+    CSVParser 			parser;
+    Map<String,Integer> 	header;
+    List<String> 		names;
+    int 			i;
+    int				n;
+    List<CSVRecord> 		records;
+    int 			numRows;
+    ArrayList<Attribute> 	atts;
+    AttributeType[]		types;
+    boolean 			noNumeric;
+    String 			cell;
+    double[] 			values;
+    boolean			hasNominalValues;
+    Map<Integer,Set<String>>	nominalValues;
+    Map<Integer,Boolean>	sortLabels;
+    List<String>		labels;
+
     if (m_sourceReader == null)
       throw new IOException("No source has been specified");
 
     if (m_structure == null) {
       try {
-        CSVFormat format = CommonCsvFormats.getFormat(m_Format);
+        // parse
+        format = CommonCsvFormats.getFormat(m_Format);
         format = format.withFirstRecordAsHeader();
         if (m_UseCustomFieldSeparator)
           format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
-        CSVParser parser = format.parse(m_sourceReader);
-        Map<String,Integer> header = parser.getHeaderMap();
-        List<String> names = new ArrayList<String>();
-        for (int i = 0; i < header.size(); i++)
+        parser = format.parse(m_sourceReader);
+        header = parser.getHeaderMap();
+        records = parser.getRecords();
+        numRows = records.size();
+        atts = new ArrayList<Attribute>();
+	if (numRows == 0)
+	  throw new IOException("No rows in CSV file?");
+
+	// init header names
+        names = new ArrayList<String>();
+        for (i = 0; i < header.size(); i++)
           names.add("");
         for (String name: header.keySet())
           names.set(header.get(name), name);
-        List<CSVRecord> records = parser.getRecords();
-        int numRows = records.size();
-        ArrayList<Attribute> atts = new ArrayList<Attribute>();
-	if (numRows == 0)
-	  throw new IOException("No rows in CSV file?");
-	boolean[] numeric = new boolean[records.get(0).size()];
-	for (int i = 0; i < numeric.length; i++)
-	  numeric[i] = true;
+
+	// init types
+	types = new AttributeType[records.get(0).size()];
+	m_NominalRange.setUpper(types.length - 1);
+	m_StringRange.setUpper(types.length - 1);
+	m_DateRange.setUpper(types.length - 1);
+	hasNominalValues = false;
+	nominalValues = new HashMap<Integer, Set<String>>();
+	sortLabels = new HashMap<Integer, Boolean>();
+	for (i = 0; i < types.length; i++) {
+	  types[i] = AttributeType.NUMERIC;
+	  if (m_NominalRange.isInRange(i)) {
+	    types[i] = AttributeType.NOMINAL;
+	    hasNominalValues = true;
+	  }
+	  else if (m_StringRange.isInRange(i)) {
+	    types[i] = AttributeType.STRING;
+	  }
+	  else if (m_DateRange.isInRange(i)) {
+	    types[i] = AttributeType.DATE;
+	  }
+	}
 	if (numRows == 1) {
 	  // header
-	  for (int i = 0; i < names.size(); i++)
+	  for (i = 0; i < names.size(); i++)
 	    atts.add(new Attribute(names.get(i)));
 	  // no data
 	  m_Data = new Instances("CSV", atts, 0);
@@ -448,41 +745,90 @@ public class CommonCSVLoader
 	}
 	else {
 	  // check data
-	  for (int n = 0; n < records.size(); n++) {
-	    boolean noNumeric = true;
-	    for (int i = 0; i < numeric.length && i < records.get(n).size(); i++) {
-	      if (numeric[i]) {
+	  for (n = 0; n < records.size(); n++) {
+	    noNumeric = true;
+	    for (i = 0; i < types.length && i < records.get(n).size(); i++) {
+	      if (types[i] == AttributeType.NUMERIC) {
 	        noNumeric = false;
-	        String cell = records.get(n).get(i);
-	        if (cell.isEmpty())
+	        cell = records.get(n).get(i);
+	        if (cell.equals(m_MissingValue))
 	          continue;
 	        if (!isNumeric(cell))
-	          numeric[i] = false;
+	          types[i] = AttributeType.STRING;
 	      }
 	    }
 	    // all columns contain string values, no need to further investigate
 	    if (noNumeric)
 	      break;
 	  }
+	  // nominal values
+	  if (hasNominalValues) {
+	    for (n = 0; n < records.size(); n++) {
+	      for (i = 0; i < types.length && i < records.get(n).size(); i++) {
+		if (types[i] == AttributeType.NOMINAL) {
+		  if (!nominalValues.containsKey(i)) {
+		    nominalValues.put(i, new HashSet<String>());
+		    sortLabels.put(i, true);  // TODO not if label spec
+		  }
+		  cell = records.get(n).get(i);
+		  if (cell.equals(m_MissingValue))
+		    continue;
+		  nominalValues.get(i).add(cell);
+		}
+	      }
+	    }
+	  }
+
 	  // header
-	  for (int i = 0; i < names.size(); i++) {
-	    if (numeric[i])
-	      atts.add(new Attribute(names.get(i)));
-	    else
-	      atts.add(new Attribute(names.get(i), (List<String>) null));
+	  for (i = 0; i < names.size(); i++) {
+	    switch (types[i]) {
+	      case NUMERIC:
+		atts.add(new Attribute(names.get(i)));
+	        break;
+	      case NOMINAL:
+	        labels = new ArrayList<String>(nominalValues.get(i));
+	        if (sortLabels.get(i))
+		  Collections.sort(labels);
+		atts.add(new Attribute(names.get(i), labels));
+	        break;
+	      case STRING:
+		atts.add(new Attribute(names.get(i), (List<String>) null));
+	        break;
+	      case DATE:
+	        atts.add(new Attribute(names.get(i), m_DateFormat));
+	        break;
+	      default:
+	        throw new IllegalStateException("Unhandled attribute type: " + types[i]);
+	    }
 	  }
 	  m_Data = new Instances("CSV", atts, records.size());
+
 	  // data
-	  for (int n = 0; n < records.size(); n++) {
-	    double[] values = new double[numeric.length];
-	    for (int i = 0; i < numeric.length && i < records.get(n).size(); i++) {
-	      String cell = records.get(n).get(i);
-	      if (cell.isEmpty())
-	        values[i] = Utils.missingValue();
-	      else if (numeric[i])
-	        values[i] = Double.parseDouble(cell);
-	      else
-	        values[i] = m_Data.attribute(i).addStringValue(cell);
+	  for (n = 0; n < records.size(); n++) {
+	    values = new double[types.length];
+	    for (i = 0; i < types.length && i < records.get(n).size(); i++) {
+	      cell = records.get(n).get(i);
+	      if (cell.equals(m_MissingValue)) {
+		values[i] = Utils.missingValue();
+	      }
+	      else {
+		switch (types[i]) {
+		  case NUMERIC:
+		    values[i] = Double.parseDouble(cell);
+		    break;
+		  case NOMINAL:
+		    values[i] = m_Data.attribute(i).indexOfValue(cell);
+		    break;
+		  case STRING:
+		    values[i] = m_Data.attribute(i).addStringValue(cell);
+		    break;
+		  case DATE:
+		    values[i] = m_Data.attribute(i).parseDate(cell);
+		    break;
+		  default:
+		    throw new IllegalStateException("Unhandled attribute type: " + types[i]);
+		}
+	      }
 	    }
 	    m_Data.add(new DenseInstance(1.0, values));
 	  }
