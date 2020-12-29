@@ -18,6 +18,61 @@ Supported formats:
 * **RFC-4180** - The RFC-4180 format defined by RFC-4180.
 * **TDF** - A tab delimited format.
 
+## Options
+
+```
+Usage:
+	CommonCSVLoader <file.csv | file.tsv | file.txt> [options]
+
+Options:
+
+-decimal <num>
+	The maximum number of digits to print after the decimal
+	place for numeric values (default: 6)
+-F <DEFAULT|EXCEL|INFORMIX|INFORMIXCSV|MYSQL|ORACLE|POSTGRESQLCSV|POSTGRESQLTXT|RFC4180|TDF>
+	The CSV format to use
+	(default: DEFAULT)
+-use-custom-field-separator
+	Whether to use custom field separator
+	(default: no)
+-custom-field-separator <separator-char>
+	The custom field separator
+	(default: ,)
+-use-custom-quote-character
+	Whether to use custom quote character
+	(default: no)
+-custom-quote-character <quote-char>
+	The custom quote character
+	(default: ")
+-no-header
+	Whether there is no header row in the spreadsheet
+	(default: assumes header row present)
+-nominal <range>
+	The attribute range to treat as nominal
+	(default: none)
+-nominal-label-spec <nominal label spec>
+	Optional specification of legal labels for nominal
+	attributes. May be specified multiple times.
+	The spec contains two parts separated by a ":".
+	The first part can be a range of attribute indexes or
+	a comma-separated list off attruibute names;
+	the second part is a comma-separated list of labels. E.g.:
+	"1,2,4-6:red,green,blue" or "att1,att2:red,green,blue"
+-string <range>
+	The attribute range to treat as string
+	(default: none)
+-date <range>
+	The attribute range to treat as date
+	(default: none)
+-date-format <format>
+	The format to use for parsing the date attribute(s)
+	see: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/format/DateTimeFormatter.html
+	(default: yyyy-MM-dd'T'HH:mm:ss)
+-missing-value <string>
+	The string to interpret as missing value
+	(default: '')
+```
+
 ## Releases
 
 * [2020.11.29](https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.11.29/common-csv-2020.11.29.zip)
