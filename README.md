@@ -75,6 +75,7 @@ Options:
 
 ## Releases
 
+* [2020.12.30](https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.12.30/common-csv-2020.12.30.zip)
 * [2020.12.29](https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.12.29/common-csv-2020.12.29.zip)
 * [2020.11.29](https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.11.29/common-csv-2020.11.29.zip)
 
@@ -87,7 +88,7 @@ Use the following dependency in your `pom.xml`:
     <dependency>
       <groupId>com.github.fracpete</groupId>
       <artifactId>common-csv-weka-package</artifactId>
-      <version>2020.12.29</version>
+      <version>2020.12.30</version>
       <type>jar</type>
       <exclusions>
         <exclusion>
