@@ -112,7 +112,7 @@ public class CommonCSVLoader
   public final static String DEFAULT_CUSTOM_QUOTE_CHARACTER = "\"";
 
   /** the custom quote character to use. */
-  protected String m_CustomQuoteCharacter = DEFAULT_CUSTOM_FIELD_SEPARATOR;
+  protected String m_CustomQuoteCharacter = DEFAULT_CUSTOM_QUOTE_CHARACTER;
   
   /** whether the file has no header row. */
   protected boolean m_NoHeader = false;
