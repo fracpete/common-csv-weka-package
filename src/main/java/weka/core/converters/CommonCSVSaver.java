@@ -611,6 +611,14 @@ public class CommonCSVSaver
    */
   @Override
   public void writeBatch() throws IOException {
+    CSVFormat 		format;
+    CSVPrinter 		printer;
+    Instances 		data;
+    List<Object> 	values;
+    int			i;
+    int			n;
+    Instance 		inst;
+
     if (getInstances() == null) {
       throw new IOException("No instances to save");
     }
@@ -622,7 +630,7 @@ public class CommonCSVSaver
     setRetrieval(BATCH);
     setWriteMode(WRITE);
 
-    CSVFormat format = CommonCsvFormats.getFormat(m_Format);
+    format = CommonCsvFormats.getFormat(m_Format);
       if (m_Format != CommonCsvFormats.TDF) {
 	if (m_UseCustomFieldSeparator)
 	  format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
@@ -633,21 +641,21 @@ public class CommonCSVSaver
       format = format.withQuoteMode(CommonCsvQuoteModes.getQuoteMode(m_CustomQuoteMode));
     if (m_UseCustomEscapeCharacter && m_CustomEscapeCharacter.length() == 1)
       format = format.withEscape(m_CustomEscapeCharacter.charAt(0));
-    CSVPrinter printer = format.print(getWriter());
-    Instances data = getInstances();
+    printer = format.print(getWriter());
+    data = getInstances();
 
     // header
-    List<Object> values = new ArrayList<Object>();
-    for (int i = 0; i < data.numAttributes(); i++)
+    values = new ArrayList<Object>();
+    for (i = 0; i < data.numAttributes(); i++)
       values.add(data.attribute(i).name());
     if (!m_NoHeader)
       printer.printRecord(values);
 
     // data
-    for (int n = 0; n < data.numInstances(); n++) {
-      Instance inst = data.instance(n);
+    for (n = 0; n < data.numInstances(); n++) {
+      inst = data.instance(n);
       values = new ArrayList<Object>();
-      for (int i = 0; i < inst.numAttributes(); i++) {
+      for (i = 0; i < inst.numAttributes(); i++) {
         if (!inst.isMissing(i)) {
           switch (inst.attribute(i).type()) {
 	    case Attribute.NUMERIC:
