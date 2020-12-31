@@ -113,7 +113,25 @@ public class CommonCSVLoader
 
   /** the custom quote character to use. */
   protected String m_CustomQuoteCharacter = DEFAULT_CUSTOM_QUOTE_CHARACTER;
-  
+
+  /** whether to use a custom quote mode. */
+  protected boolean m_UseCustomQuoteMode= false;
+
+  /** the default custom quote mode. */
+  public final static int DEFAULT_CUSTOM_QUOTE_MODE = CommonCsvQuoteModes.MINIMAL;
+
+  /** the custom quote mode to use. */
+  protected int m_CustomQuoteMode = DEFAULT_CUSTOM_QUOTE_MODE;
+
+  /** whether to use a custom escape character. */
+  protected boolean m_UseCustomEscapeCharacter = false;
+
+  /** the default escape character. */
+  public final static String DEFAULT_CUSTOM_ESCAPE_CHARACTER = "";
+
+  /** the custom escape character to use. */
+  protected String m_CustomEscapeCharacter = DEFAULT_CUSTOM_ESCAPE_CHARACTER;
+
   /** whether the file has no header row. */
   protected boolean m_NoHeader = false;
 
@@ -343,6 +361,119 @@ public class CommonCSVLoader
   }
 
   /**
+   * Sets whether to use the custom quote character.
+   *
+   * @param value	true if to use
+   */
+  public void setUseCustomQuoteMode(boolean value) {
+    m_UseCustomQuoteMode = value;
+  }
+
+  /**
+   * Returns whether to use the custom quote mode.
+   *
+   * @return		true if to use
+   */
+  public boolean getUseCustomQuoteMode() {
+    return m_UseCustomQuoteMode;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String useCustomQuoteModeTipText() {
+    return "If enabled, makes use of the supplied quote mode.";
+  }
+
+  /**
+   * Sets the custom quote mode.
+   *
+   * @param value	the mode
+   */
+  public void setCustomQuoteMode(SelectedTag value) {
+    if (value.getTags() == CommonCsvQuoteModes.TAGS_QUOTEMODES)
+      m_CustomQuoteMode = value.getSelectedTag().getID();
+  }
+
+  /**
+   * Returns the custom quote mode.
+   *
+   * @return		the mode
+   */
+  public SelectedTag getCustomQuoteMode() {
+    return new SelectedTag(m_CustomQuoteMode, CommonCsvQuoteModes.TAGS_QUOTEMODES);
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String customQuoteModeTipText() {
+    return "The quote mode, when using custom one is enabled.";
+  }
+
+  /**
+   * Sets whether to use the custom escape character.
+   *
+   * @param value	true if to use
+   */
+  public void setUseCustomEscapeCharacter(boolean value) {
+    m_UseCustomEscapeCharacter = value;
+  }
+
+  /**
+   * Returns whether to use the custom escape character.
+   *
+   * @return		true if to use
+   */
+  public boolean getUseCustomEscapeCharacter() {
+    return m_UseCustomEscapeCharacter;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String useCustomEscapeCharacterTipText() {
+    return "If enabled, makes use of the supplied escape character.";
+  }
+
+  /**
+   * Sets the custom escape character.
+   *
+   * @param value	the character
+   */
+  public void setCustomEscapeCharacter(String value) {
+    m_CustomEscapeCharacter = value;
+  }
+
+  /**
+   * Returns the custom escape character.
+   *
+   * @return		the character
+   */
+  public String getCustomEscapeCharacter() {
+    return m_CustomEscapeCharacter;
+  }
+
+  /**
+   * Returns the tip text for this property
+   *
+   * @return tip text for this property suitable for displaying in the
+   *         explorer/experimenter gui
+   */
+  public String customEscapeCharacterTipText() {
+    return "The escape character, when using custom one is enabled.";
+  }
+
+  /**
    * Sets whether there is no header row present.
    *
    * @param value	true if no header row
@@ -367,7 +498,7 @@ public class CommonCSVLoader
    *         explorer/experimenter gui
    */
   public String noHeaderTipText() {
-    return "If enabled, assumes no header row in the spradsheet.";
+    return "If enabled, assumes no header row in the spreadsheet.";
   }
 
   /**
@@ -613,6 +744,22 @@ public class CommonCSVLoader
       + "\t(default: " + DEFAULT_CUSTOM_QUOTE_CHARACTER + ")",
       "custom-quote-character", 1, "-custom-quote-character <quote-char>"));
 
+    result.addElement(new Option("\tWhether to use custom quote mode\n"
+      + "\t(default: no)",
+      "use-custom-quote-mode", 0, "-use-custom-quote-mode"));
+
+    result.addElement(new Option("\tThe custom quote mode\n"
+      + "\t(default: MINIMAL)",
+      "custom-quote-mode", 1, "-custom-quote-mode " + Tag.toOptionList(CommonCsvQuoteModes.TAGS_QUOTEMODES)));
+
+    result.addElement(new Option("\tWhether to use custom escape character\n"
+      + "\t(default: no)",
+      "use-custom-escape-character", 0, "-use-custom-escape-character"));
+
+    result.addElement(new Option("\tThe custom escape character\n"
+      + "\t(default: " + DEFAULT_CUSTOM_ESCAPE_CHARACTER + ")",
+      "custom-escape-character", 1, "-custom-escape-character <escape-char>"));
+
     result.addElement(new Option("\tWhether there is no header row in the spreadsheet\n"
       + "\t(default: assumes header row present)",
       "no-header", 0, "-no-header"));
@@ -676,6 +823,25 @@ public class CommonCSVLoader
 
     setUseCustomQuoteCharacter(Utils.getFlag("use-custom-quote-character", options));
 
+    tmp = Utils.getOption("custom-quote-character", options);
+    if (!tmp.isEmpty() && (tmp.length() == 1))
+      setCustomQuoteCharacter(tmp);
+    else
+      setCustomQuoteCharacter(DEFAULT_CUSTOM_QUOTE_CHARACTER);
+
+    setUseCustomQuoteMode(Utils.getFlag("use-custom-quote-mode", options));
+
+    tmp = Utils.getOption("custom-quote-mode", options);
+    if (!tmp.isEmpty())
+      setCustomQuoteMode(new SelectedTag(tmp, CommonCsvQuoteModes.TAGS_QUOTEMODES));
+    else
+      setCustomQuoteMode(new SelectedTag(CommonCsvQuoteModes.MINIMAL, CommonCsvQuoteModes.TAGS_QUOTEMODES));
+
+    setUseCustomEscapeCharacter(Utils.getFlag("use-custom-escape-character", options));
+
+    tmp = Utils.getOption("custom-escape-character", options);
+    setCustomEscapeCharacter(tmp);
+
     setNoHeader(Utils.getFlag("no-header", options));
 
     tmp = Utils.getOption("custom-header", options);
@@ -683,12 +849,6 @@ public class CommonCSVLoader
       setCustomHeader(tmp);
     else
       setCustomHeader(DEFAULT_CUSTOM_HEADER);
-
-    tmp = Utils.getOption("custom-quote-character", options);
-    if (!tmp.isEmpty() && (tmp.length() == 1))
-      setCustomQuoteCharacter(tmp);
-    else
-      setCustomQuoteCharacter(DEFAULT_CUSTOM_QUOTE_CHARACTER);
 
     tmp = Utils.getOption("nominal", options);
     if (!tmp.isEmpty())
@@ -754,6 +914,18 @@ public class CommonCSVLoader
       result.add("-use-custom-quote-character");
       result.add("-custom-quote-character");
       result.add(getCustomQuoteCharacter());
+    }
+
+    if (getUseCustomQuoteMode()) {
+      result.add("-use-custom-quote-mode");
+      result.add("-custom-quote-mode");
+      result.add(getCustomQuoteMode().getSelectedTag().getIDStr());
+    }
+
+    if (getUseCustomEscapeCharacter()) {
+      result.add("-use-custom-escape-character");
+      result.add("-custom-escape-character");
+      result.add(getCustomEscapeCharacter());
     }
 
     if (getNoHeader())
@@ -997,7 +1169,11 @@ public class CommonCSVLoader
 	  format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
       }
       if (m_UseCustomQuoteCharacter)
-	format = format.withEscape(m_CustomQuoteCharacter.charAt(0));
+	format = format.withQuote(m_CustomQuoteCharacter.charAt(0));
+      if (m_UseCustomQuoteMode)
+        format = format.withQuoteMode(CommonCsvQuoteModes.getQuoteMode(m_CustomQuoteMode));
+      if (m_UseCustomEscapeCharacter && m_CustomEscapeCharacter.length() == 1)
+        format = format.withEscape(m_CustomEscapeCharacter.charAt(0));
       format.withAllowMissingColumnNames();
       parser = format.parse(m_sourceReader);
       records = parser.getRecords();

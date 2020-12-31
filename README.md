@@ -20,6 +20,8 @@ Supported formats:
 
 ## Options
 
+The loader:
+
 ```
 Usage:
 	CommonCSVLoader <file.csv | file.tsv | file.txt> [options]
@@ -72,6 +74,48 @@ Options:
 	The string to interpret as missing value
 	(default: '')
 ```
+
+The saver:
+
+```
+CommonCSVSaver options:
+
+-i <the input file>
+	The input file
+-o <the output file>
+	The output file
+-F <DEFAULT|EXCEL|INFORMIX|INFORMIXCSV|MYSQL|ORACLE|POSTGRESQLCSV|POSTGRESQLTXT|RFC4180|TDF>
+	The CSV format to use
+	(default: DEFAULT)
+-use-custom-field-separator
+	Whether to use custom field separator
+	(default: no)
+-custom-field-separator <separator-char>
+	The custom field separator
+	(default: ,)
+-use-custom-quote-character
+	Whether to use custom quote character
+	(default: no)
+-custom-quote-character <quote-char>
+	The custom quote character
+	(default: ")
+-use-custom-quote-mode
+	Whether to use custom quote mode
+	(default: no)
+-custom-quote-mode <ALL|ALL_NON_NULL|MINIMAL|NON_NUMERIC|NONE>
+	The custom quote mode
+	(default: MINIMAL)
+-use-custom-escape-character
+	Whether to use custom escape character
+	(default: no)
+-custom-escape-character <escape-char>
+	The custom escape character
+	(default: )
+-no-header
+	Whether to suppress output of header row
+	(default: outputs header)
+```
+
 
 ## Releases
 
