@@ -50,7 +50,7 @@ import java.util.Vector;
  */
 public class CommonCSVSaver
   extends AbstractFileSaver
-  implements BatchConverter, WeightedInstancesHandler {
+  implements BatchConverter, IncrementalConverter, WeightedInstancesHandler {
 
   /** for serialization */
   private static final long serialVersionUID = -7226404765213522043L;
@@ -97,6 +97,9 @@ public class CommonCSVSaver
   /** whether the file has no header row. */
   protected boolean m_NoHeader = false;
 
+  /** generates the CSV. */
+  protected transient CSVPrinter m_Printer;
+
   /**
    * Constructor
    */
@@ -106,7 +109,7 @@ public class CommonCSVSaver
 
   /**
    * Returns a string describing this Saver
-   * 
+   *
    * @return a description of the Saver suitable for displaying in the
    *         explorer/experimenter gui
    */
@@ -553,7 +556,7 @@ public class CommonCSVSaver
 
   /**
    * Returns a description of the file type.
-   * 
+   *
    * @return a short file description
    */
   @Override
@@ -563,7 +566,7 @@ public class CommonCSVSaver
 
   /**
    * Gets all the file extensions used for this type of file
-   * 
+   *
    * @return the file extensions
    */
   @Override
@@ -583,7 +586,7 @@ public class CommonCSVSaver
 
   /**
    * Returns the Capabilities of this saver.
-   * 
+   *
    * @return the capabilities of this object
    * @see Capabilities
    */
@@ -603,87 +606,189 @@ public class CommonCSVSaver
     return result;
   }
 
+  /** Sets the writer to null. */
+  public void resetWriter() {
+    super.resetWriter();
+    m_Printer = null;
+  }
+
   /**
-   * Writes a Batch of instances
-   * 
-   * @throws IOException throws IOException if saving in batch mode is not
-   *           possible
+   * Initializes the CSV output.
+   *
+   * @throws IOException	if initialization fails
    */
-  @Override
-  public void writeBatch() throws IOException {
+  protected void initPrinter() throws IOException {
     CSVFormat 		format;
-    CSVPrinter 		printer;
-    Instances 		data;
-    List<Object> 	values;
-    int			i;
-    int			n;
-    Instance 		inst;
-
-    if (getInstances() == null) {
-      throw new IOException("No instances to save");
-    }
-
-    if (getRetrieval() == INCREMENTAL) {
-      throw new IOException("Batch and incremental saving cannot be mixed.");
-    }
-
-    setRetrieval(BATCH);
-    setWriteMode(WRITE);
 
     format = CommonCsvFormats.getFormat(m_Format);
-      if (m_Format != CommonCsvFormats.TDF) {
-	if (m_UseCustomFieldSeparator)
-	  format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
-      }
+    if (m_Format != CommonCsvFormats.TDF) {
+      if (m_UseCustomFieldSeparator)
+	format = format.withDelimiter(m_CustomFieldSeparator.charAt(0));
+    }
     if (m_UseCustomQuoteCharacter)
       format = format.withQuote(m_CustomQuoteCharacter.charAt(0));
     if (m_UseCustomQuoteMode)
       format = format.withQuoteMode(CommonCsvQuoteModes.getQuoteMode(m_CustomQuoteMode));
     if (m_UseCustomEscapeCharacter && m_CustomEscapeCharacter.length() == 1)
       format = format.withEscape(m_CustomEscapeCharacter.charAt(0));
-    printer = format.print(getWriter());
-    data = getInstances();
+    if (getWriter() != null)
+      m_Printer = format.print(getWriter());
+    else
+      m_Printer = format.print(System.out);
+  }
 
-    // header
+  /**
+   * Outputs the header.
+   *
+   * @param data	the data to base the header on
+   * @throws IOException	if writing fails
+   */
+  protected void writeHeader(Instances data) throws IOException {
+    List<Object> 	values;
+    int			i;
+
     values = new ArrayList<Object>();
     for (i = 0; i < data.numAttributes(); i++)
       values.add(data.attribute(i).name());
     if (!m_NoHeader)
-      printer.printRecord(values);
+      m_Printer.printRecord(values);
+  }
 
-    // data
-    for (n = 0; n < data.numInstances(); n++) {
-      inst = data.instance(n);
-      values = new ArrayList<Object>();
-      for (i = 0; i < inst.numAttributes(); i++) {
-        if (!inst.isMissing(i)) {
-          switch (inst.attribute(i).type()) {
-	    case Attribute.NUMERIC:
-	    case Attribute.DATE:
-	      values.add(inst.value(i));
-	      break;
-	    case Attribute.NOMINAL:
-	    case Attribute.STRING:
-	      values.add(inst.stringValue(i));
-	      break;
-	    case Attribute.RELATIONAL:
-	      values.add(inst.relationalValue(i).toString());
-	      break;
-	  }
+  /**
+   * Writes a CSV row.
+   *
+   * @param inst	the row to output
+   * @throws IOException	if writing fails
+   */
+  protected void writeRow(Instance inst) throws IOException {
+    List<Object> 	values;
+    int			i;
+
+    values = new ArrayList<Object>();
+    for (i = 0; i < inst.numAttributes(); i++) {
+      if (!inst.isMissing(i)) {
+	switch (inst.attribute(i).type()) {
+	  case Attribute.NUMERIC:
+	  case Attribute.DATE:
+	    values.add(inst.value(i));
+	    break;
+	  case Attribute.NOMINAL:
+	  case Attribute.STRING:
+	    values.add(inst.stringValue(i));
+	    break;
+	  case Attribute.RELATIONAL:
+	    values.add(inst.relationalValue(i).toString());
+	    break;
 	}
       }
-      printer.printRecord(values);
     }
+    m_Printer.printRecord(values);
+  }
 
-    printer.flush();
+  /**
+   * Writes a Batch of instances
+   *
+   * @throws IOException throws IOException if saving in batch mode is not
+   *           possible
+   */
+  @Override
+  public void writeBatch() throws IOException {
+    Instances 		data;
+    int			n;
+
+    if (getInstances() == null)
+      throw new IOException("No instances to save");
+
+    if (getRetrieval() == INCREMENTAL)
+      throw new IOException("Batch and incremental saving cannot be mixed.");
+
+    setRetrieval(BATCH);
+    setWriteMode(WRITE);
+
+    initPrinter();
+    data = getInstances();
+
+    // header
+    writeHeader(data);
+
+    // data
+    for (n = 0; n < data.numInstances(); n++)
+      writeRow(data.instance(n));
+
+    m_Printer.flush();
+    m_Printer.close();
     setWriteMode(WAIT);
     resetWriter();
     setWriteMode(CANCEL);
   }
 
   /**
+   * Saves an instances incrementally. Structure has to be set by using the
+   * setStructure() method or setInstances() method.
+   *
+   * @param inst the instance to save
+   * @throws IOException throws IOEXception if an instance cannot be saved
+   *           incrementally.
+   */
+  @Override
+  public void writeIncremental(Instance inst) throws IOException {
+    int 	writeMode;
+    Instances 	structure;
+
+    writeMode = getWriteMode();
+    structure = getInstances();
+
+    if (getRetrieval() == BATCH || getRetrieval() == NONE)
+      throw new IOException("Batch and incremental saving cannot be mixed.");
+    initPrinter();
+
+    if (writeMode == WAIT) {
+      if (structure == null) {
+	setWriteMode(CANCEL);
+	if (inst != null)
+	  System.err.println("Structure(Header Information) has to be set in advance");
+      }
+      else {
+	setWriteMode(STRUCTURE_READY);
+      }
+      writeMode = getWriteMode();
+    }
+    if (writeMode == CANCEL) {
+      if (m_Printer != null) {
+	m_Printer.flush();
+	m_Printer.close();
+      }
+      cancel();
+    }
+    if (writeMode == STRUCTURE_READY) {
+      setWriteMode(WRITE);
+      writeHeader(structure);
+      writeMode = getWriteMode();
+    }
+    if (writeMode == WRITE) {
+      if (structure == null)
+	throw new IOException("No instances information available.");
+      if (inst != null) {
+	writeRow(inst);
+	m_Printer.flush();
+      }
+      else {
+	// close
+	if (m_Printer != null) {
+	  m_Printer.flush();
+	  m_Printer.close();
+	}
+	m_incrementalCounter = 0;
+	resetStructure();
+	m_Printer = null;
+	resetWriter();
+      }
+    }
+  }
+
+  /**
    * Returns the revision string.
-   * 
+   *
    * @return the revision
    */
   @Override
@@ -693,7 +798,7 @@ public class CommonCSVSaver
 
   /**
    * Main method.
-   * 
+   *
    * @param args should contain the options of a Saver.
    */
   public static void main(String[] args) {
