@@ -21,9 +21,11 @@ package weka.core.converters;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Range;
 import weka.core.SelectedTag;
+import weka.core.SerializedObject;
 import weka.core.Utils;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.test.Regression;
@@ -87,6 +89,7 @@ public class CommonCSVTest
   /**
    * tests whether a URL can be loaded (via setURL(URL)).
    */
+  @Override
   public void testURLSourcedLoader() {
     updateLoader(m_Instances, m_Loader);
     super.testURLSourcedLoader();
@@ -95,6 +98,7 @@ public class CommonCSVTest
   /**
    * test the batch saving/loading (via setFile(File)).
    */
+  @Override
   public void testBatch() {
     updateLoader(m_Instances, m_Loader);
     super.testBatch();
@@ -103,9 +107,19 @@ public class CommonCSVTest
   /**
    * tests whether data can be loaded via setSource() with a file stream.
    */
+  @Override
   public void testLoaderWithStream() {
     updateLoader(m_Instances, m_Loader);
     super.testLoaderWithStream();
+  }
+
+  /**
+   * test the incremental loading (via setFile(File)).
+   */
+  @Override
+  public void testIncrementalLoader() {
+    updateLoader(m_Instances, m_Loader);
+    super.testIncrementalLoader();
   }
 
   /**
@@ -120,6 +134,7 @@ public class CommonCSVTest
       "weka/core/converters/iris_tab.csv",
       "weka/core/converters/ambiguous.csv",
       "weka/core/converters/mixed.csv",
+      "weka/core/converters/mixed.csv",
     };
   }
 
@@ -131,7 +146,7 @@ public class CommonCSVTest
   protected CommonCSVLoader[] getLoaderRegressionSetups() {
     CommonCSVLoader[] result;
 
-    result = new CommonCSVLoader[5];
+    result = new CommonCSVLoader[6];
 
     result[0] = new CommonCSVLoader();
 
@@ -156,6 +171,9 @@ public class CommonCSVTest
     result[4].setDateRange(new Range("last"));
     result[4].setDateFormat("yyyy-MM-dd");
     result[4].setMissingValue("?");
+
+    result[5] = new CommonCSVLoader();
+    result[5].setNoHeader(true);
 
     return result;
   }
@@ -348,6 +366,68 @@ public class CommonCSVTest
     }
     catch (java.io.IOException ex) {
       fail("Problem during regression testing.\n" + ex);
+    }
+  }
+
+  /**
+   * Tests incremental vs batch loading.
+   *
+   * @param file 	the file to load
+   * @param setup 	the setup to use
+   * @throws Exception	if test fails
+   */
+  protected void doTestIncrementalVsBatch(String file, CommonCSVLoader setup) throws Exception {
+    CommonCSVLoader	actual;
+    InputStream		in;
+    Instances		incremental;
+    Instance		inst;
+    Instances		batch;
+    String		msg;
+
+    // incremental
+    actual = (CommonCSVLoader) new SerializedObject(setup).getObject();
+    in = ClassLoader.getSystemResourceAsStream(file);
+    if (in == null)
+      throw new IOException("Failed to load: " + file);
+    actual.setSource(in);
+    incremental = actual.getStructure();
+    while ((inst = actual.getNextInstance(incremental)) != null)
+      incremental.add(inst);
+
+    // batch
+    actual = (CommonCSVLoader) new SerializedObject(setup).getObject();
+    in = ClassLoader.getSystemResourceAsStream(file);
+    if (in == null)
+      throw new IOException("Failed to load: " + file);
+    actual.setSource(in);
+    batch = actual.getDataSet();
+
+    // compare
+    msg = batch.equalHeadersMsg(incremental);
+    assertNull("Headers differ (batch vs inc)", msg);
+    assertEquals("Number of rows different (batch vs inc)", batch.numInstances(), incremental.numInstances());
+  }
+
+  /**
+   * Tests incremental vs batch loading.
+   */
+  public void testIncrementalVsBatch() {
+    String[]		files;
+    CommonCSVLoader[]	setups;
+    int			i;
+
+    files  = getLoaderRegressionFiles();
+    setups = getLoaderRegressionSetups();
+    if (files.length != setups.length)
+      fail("Number of files does not match setups: " + files.length + " != " + setups.length);
+    for (i = 0; i < files.length; i++) {
+      try {
+	doTestIncrementalVsBatch(files[i], setups[i]);
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        fail("Failed to test '" + Utils.toCommandLine(setups[i]) + "' on '" + files[i] + "': " + e);
+      }
     }
   }
 

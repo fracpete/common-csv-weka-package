@@ -46,6 +46,18 @@ Options:
 -custom-quote-character <quote-char>
 	The custom quote character
 	(default: ")
+-use-custom-quote-mode
+	Whether to use custom quote mode
+	(default: no)
+-custom-quote-mode <ALL|ALL_NON_NULL|MINIMAL|NON_NUMERIC|NONE>
+	The custom quote mode
+	(default: MINIMAL)
+-use-custom-escape-character
+	Whether to use custom escape character
+	(default: no)
+-custom-escape-character <escape-char>
+	The custom escape character
+	(default: )
 -no-header
 	Whether there is no header row in the spreadsheet
 	(default: assumes header row present)
@@ -73,6 +85,9 @@ Options:
 -missing-value <string>
 	The string to interpret as missing value
 	(default: '')
+-num-rows-type-detection <int>
+	The number of rows to use for detecting numeric rows
+	(default: '100')
 ```
 
 The saver:
