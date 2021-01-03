@@ -738,7 +738,7 @@ public class CommonCSVLoader
   /**
    * Sets the number of rows to use for detecting numeric columns.
    *
-   * @param value	the number of rows (>0)
+   * @param value	the number of rows (&gt;0)
    */
   public void setNumRowsTypeDetection(int value) {
     if (value > 0)
