@@ -3,7 +3,7 @@
 Weka package for loader and saver for common CSV formats, using the 
 [Apache Commons CSV](https://commons.apache.org/proper/commons-csv/) library.
 
-Requires Weka 3.9.5+ or 3.9.x snapshots post revision 15656 (2020-11-29).
+Requires Weka 3.9.5+.
 
 Supported formats:
 
