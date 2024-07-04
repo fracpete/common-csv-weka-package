@@ -5,7 +5,7 @@
 
   <groupId>com.github.fracpete</groupId>
   <artifactId>common-csv-weka-package</artifactId>
-  <version>2024.7.5</version>
+  <version>2024.7.6-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>common-csv</name>
