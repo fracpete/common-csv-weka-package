@@ -134,6 +134,7 @@ CommonCSVSaver options:
 
 ## Releases
 
+* [2024.7.5](https://github.com/fracpete/common-csv-weka-package/releases/download/v2024.7.5/common-csv-2024.7.5.zip)
 * [2021.1.3](https://github.com/fracpete/common-csv-weka-package/releases/download/v2021.1.3/common-csv-2021.1.3.zip)
 * [2020.12.30](https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.12.30/common-csv-2020.12.30.zip)
 * [2020.12.29](https://github.com/fracpete/common-csv-weka-package/releases/download/v2020.12.29/common-csv-2020.12.29.zip)
@@ -148,7 +149,7 @@ Use the following dependency in your `pom.xml`:
     <dependency>
       <groupId>com.github.fracpete</groupId>
       <artifactId>common-csv-weka-package</artifactId>
-      <version>2021.1.3</version>
+      <version>2024.7.5</version>
       <type>jar</type>
       <exclusions>
         <exclusion>
